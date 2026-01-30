@@ -4,16 +4,31 @@ import numpy as np
 
 class PhoneClassifier:
     def __init__(self, model_path="phone_svm_model.xml"):
-        self.model_path = model_path
+        # Note: SVM model is usually created at runtime when training.
+        # But if we package a trained model, we want to find it.
+        from utils import get_resource_path
+        
+        # Check if the bundled path exists (for reading a pre-trained model in exe)
+        bundled_path = get_resource_path(model_path)
+        
+        # If we are training, we write to the local file system, NOT the temp exe path.
+        # So we keep 'model_path' as the filename for saving, but use bundled_path for loading if available.
+        
+        self.model_path = model_path # Keep relative for saving new training
+        
+        target_load_path = model_path
+        if os.path.exists(bundled_path):
+            target_load_path = bundled_path
+            
         self.svm = cv2.ml.SVM_create()
         self.hog = cv2.HOGDescriptor() # Defaults: winSize=(64,128)
         self.trained = False
         
-        if os.path.exists(model_path):
+        if os.path.exists(target_load_path):
             try:
-                self.svm = cv2.ml.SVM_load(model_path)
+                self.svm = cv2.ml.SVM_load(target_load_path)
                 self.trained = True
-                print("[INFO] SVM model loaded.")
+                print(f"[INFO] SVM model loaded from {target_load_path}")
             except Exception as e:
                 print(f"[WARNING] Failed to load model: {e}")
 
