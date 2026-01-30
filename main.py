@@ -310,8 +310,15 @@ class HumanDetectionApp(QMainWindow):
         from PyQt6.QtGui import QDesktopServices
         from PyQt6.QtCore import QUrl
         import os
+        from utils import get_resource_path
         
-        readme_path = os.path.abspath("README.md")
+        # Try to find the readme. In exe, it might be in temp folder.
+        readme_path = get_resource_path("README.md")
+        
+        # If not found (e.g. forgot to bundle), try local dir
+        if not os.path.exists(readme_path):
+             readme_path = os.path.abspath("README.md")
+             
         QDesktopServices.openUrl(QUrl.fromLocalFile(readme_path))
 
     def view_history(self):
