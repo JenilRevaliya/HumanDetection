@@ -310,16 +310,10 @@ class HumanDetectionApp(QMainWindow):
         from PyQt6.QtGui import QDesktopServices
         from PyQt6.QtCore import QUrl
         import os
-        from utils import get_resource_path
-        
-        # Try to find the readme. In exe, it might be in temp folder.
-        readme_path = get_resource_path("README.md")
-        
-        # If not found (e.g. forgot to bundle), try local dir
-        if not os.path.exists(readme_path):
-             readme_path = os.path.abspath("README.md")
-             
-        QDesktopServices.openUrl(QUrl.fromLocalFile(readme_path))
+        # Open local README file
+        path = os.path.abspath("README.md")
+        if os.path.exists(path):
+            QDesktopServices.openUrl(QUrl.fromLocalFile(path))
 
     def view_history(self):
         if not self.db or not self.db.connected:
@@ -372,12 +366,14 @@ class HumanDetectionApp(QMainWindow):
             landmarks = results.pose_landmarks[0]
             face_landmarks = landmarks[:11]
             
+            # Find face bounds
             y_min, y_max = height, 0
             for lm in face_landmarks:
                 y = int(lm.y * height)
                 if y < y_min: y_min = y
                 if y > y_max: y_max = y
             
+            # Estimate distance from face height
             bbox_h = y_max - y_min
             self.last_distance = estimate_distance(bbox_h, height)
             
@@ -400,17 +396,19 @@ class HumanDetectionApp(QMainWindow):
         face_duration = self._get_history_duration(self.face_history)
         face_avg = self._get_avg_confidence(self.face_history)
         
+        # Log if no face for 14s+
         if face_duration >= 14.0 and face_avg < 0.25:
             if not self.db_logged_no_face:
                 self.db.log_no_face(avg_accuracy=face_avg)
-                self.log("DB: Logged No Face (15s Avg)", color="#ff00ff")
+                self.log("DB: Logged No Face", color="#ff00ff")
                 self.db_logged_no_face = True
         else:
+            # Check for recovery (5s)
             if self.db_logged_no_face:
                 recent_avg = self._get_avg_confidence(self.face_history, duration=5.0)
                 if recent_avg > 0.5:
                      self.db.log_face_recovered(avg_accuracy=recent_avg)
-                     self.log("DB: Logged Face Recovered (5s Avg)", color="#00ff00")
+                     self.log("DB: Logged Face Recovered", color="#00ff00")
                      self.db_logged_no_face = False
             elif face_avg > 0.6: 
                  self.db_logged_no_face = False
@@ -422,17 +420,18 @@ class HumanDetectionApp(QMainWindow):
         dist_duration = self._get_history_duration(self.distance_history)
         far_avg = self._get_avg_confidence(self.distance_history)
         
+        # Log distance alerts
         if dist_duration >= 14.0 and far_avg > 0.8: 
              if not self.db_logged_far:
                  self.db.log_too_far(avg_accuracy=far_avg)
-                 self.log("DB: Logged Person Too Far (15s Avg)", color="#ff00ff")
+                 self.log("DB: Logged Person Too Far", color="#ff00ff")
                  self.db_logged_far = True
         else:
             if self.db_logged_far:
                  recent_far_avg = self._get_avg_confidence(self.distance_history, duration=5.0)
                  if recent_far_avg < 0.2:
                      self.db.log_back_in_range(avg_accuracy=recent_far_avg)
-                     self.log("DB: Logged Back in Range (5s Avg)", color="#00ff00")
+                     self.log("DB: Logged Back in Range", color="#00ff00")
                      self.db_logged_far = False
             elif far_avg < 0.5:
                  self.db_logged_far = False
@@ -475,17 +474,18 @@ class HumanDetectionApp(QMainWindow):
         phone_duration = self._get_history_duration(self.phone_history)
         phone_avg = self._get_avg_confidence(self.phone_history)
         
+        # Log phone usage (14s+)
         if phone_duration >= 14.0 and phone_avg > 0.40:
             if not self.db_logged_phone:
                 self.db.log_phone_detected(avg_accuracy=phone_avg)
-                self.log("DB: Logged Phone Detected (15s Avg)", color="#ff00ff")
+                self.log("DB: Logged Phone Detected", color="#ff00ff")
                 self.db_logged_phone = True
         else:
             if self.db_logged_phone:
                 recent_avg = self._get_avg_confidence(self.phone_history, duration=5.0)
                 if recent_avg < 0.15:
                     self.db.log_phone_removed(avg_accuracy=recent_avg)
-                    self.log("DB: Logged Phone Removed (5s Avg)", color="#ffaa00")
+                    self.log("DB: Logged Phone Removed", color="#ffaa00")
                     self.db_logged_phone = False
             elif phone_avg < 0.25:
                  self.db_logged_phone = False
@@ -512,17 +512,18 @@ class HumanDetectionApp(QMainWindow):
         eyes_duration = self._get_history_duration(self.eyes_history)
         eyes_avg = self._get_avg_confidence(self.eyes_history)
         
+        # Log eyes closed (sleeping)
         if eyes_duration >= 14.0 and eyes_avg > 0.6: 
             if not self.db_logged_eyes:
                  self.db.log_eyes_closed(avg_accuracy=eyes_avg)
-                 self.log("DB: Logged Eyes Closed (15s Avg)", color="#ff00ff")
+                 self.log("DB: Logged Eyes Closed", color="#ff00ff")
                  self.db_logged_eyes = True
         else:
              if self.db_logged_eyes:
                  recent_eye_avg = self._get_avg_confidence(self.eyes_history, duration=5.0)
                  if recent_eye_avg < 0.3: 
                      self.db.log_eyes_opened(avg_accuracy=recent_eye_avg)
-                     self.log("DB: Logged Eyes Opened (5s Avg)", color="#00ff00")
+                     self.log("DB: Logged Eyes Opened", color="#00ff00")
                      self.db_logged_eyes = False
              elif eyes_avg < 0.4:
                  self.db_logged_eyes = False

@@ -1,9 +1,6 @@
 import cv2
 import mediapipe as mp
 import numpy as np
-import os
-import sys
-
 def estimate_distance(bbox_height, frame_height):
     
     if frame_height == 0: return "Unknown"
@@ -163,12 +160,5 @@ def draw_watermark(frame, text):
     
     return frame
 
-def get_resource_path(relative_path):
-    """ Get absolute path to resource, works for dev and for PyInstaller """
-    try:
-        # PyInstaller creates a temp folder and stores path in _MEIPASS
-        base_path = sys._MEIPASS
-    except Exception:
-        base_path = os.path.abspath(".")
+    return frame
 
-    return os.path.join(base_path, relative_path)
